@@ -7,7 +7,7 @@ _transform = transforms.Compose([transforms.Resize(255),
                                  transforms.ToTensor()])
 
 
-def _get_loader(path, transform, batch_size=32, shuffle=True):
+def _get_loader(path, transform, batch_size=128, shuffle=True):
     dataset = datasets.ImageFolder(path, transform=transform)
     return torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
