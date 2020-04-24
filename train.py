@@ -62,7 +62,7 @@ def train():
                       f'Loss: {loss.item()} , Acc: {acc} \n'
                       f'-----------------------------------------\n'
                       )
-                writer.add_scalar('Train/Acc', acc, e * len(train_loader))
+                writer.add_scalar('Train/Acc', acc, e * len(train_loader) + i)
                 writer.add_scalar('Train/Loss', loss.item(), e * len(train_loader) + i)
 
     write_result(net)
