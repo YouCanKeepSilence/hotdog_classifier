@@ -1,15 +1,16 @@
 import datetime
 
 import torch
+from sklearn.metrics import accuracy_score
 from torch.utils.tensorboard import SummaryWriter
 
 from models import CNN, TailedVGG16
-from dataset import get_train_loader, get_test_loader
+from dataset import get_train_loader, get_test_loader, get_train_test_data_for_svm
 import torch.nn as nn
 import torch.optim as optim
 
 
-def write_result(model):
+def write_net_result(model):
     with open('net_vgg_res.txt', 'w') as file:
         model.eval()
         test_loader = get_test_loader()
@@ -26,9 +27,11 @@ def write_result(model):
         model.train()
 
 
-def train():
+def train_net():
     net = TailedVGG16()
     print(type(net).__name__)
+    # TODO add test/validate split via SubsetRandomSampler and getting this indeces from torch.dataset
+    # or torch.utils.data.random_split
     writer = SummaryWriter(f'./logs/{type(net).__name__}-{datetime.datetime.now()}')
     if torch.cuda.is_available():
         net.cuda()
@@ -65,8 +68,22 @@ def train():
                 writer.add_scalar('Train/Acc', acc, e * len(train_loader) + i)
                 writer.add_scalar('Train/Loss', loss.item(), e * len(train_loader) + i)
 
-    write_result(net)
+    write_net_result(net)
+
+
+def train_svm():
+    from sklearn.svm import SVC
+    # define support vector classifier
+    svm = SVC(kernel='linear', probability=True, random_state=42)
+    x_train, x_test, y_train, y_test = get_train_test_data_for_svm()
+    # fit model
+    svm.fit(x_train, y_train)
+    y_pred = svm.predict(x_test)
+    # calculate accuracy
+    accuracy = accuracy_score(y_test, y_pred)
+    print('Model accuracy is: ', accuracy)
 
 
 if __name__ == '__main__':
-    train()
+    # train_net()
+    train_svm()

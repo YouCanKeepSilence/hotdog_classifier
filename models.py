@@ -43,3 +43,10 @@ class TailedVGG16(nn.Module):
         x = self.classifier(x)
         return F.log_softmax(x, dim=1)
 
+
+class SVM:
+    def __init__(self):
+        pass
+
+
+
