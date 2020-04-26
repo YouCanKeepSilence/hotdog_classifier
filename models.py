@@ -35,12 +35,16 @@ class CNN(nn.Module):
 class TailedVGG16(nn.Module):
     def __init__(self):
         super(TailedVGG16, self).__init__()
-        self.vgg16 = models.vgg16(pretrained=True)
-        self.vgg_layers = nn.Sequential(*list(self.vgg16.features), *list(self.vgg16.classifier)[:-1])
+        self.model = models.vgg16(pretrained=True)
+        self.vgg_features = self.model.features
+        self.classifier_input_size = 512 * 7 * 7
+        self.vgg_tailed_classifier = nn.Sequential(*list(self.model.classifier)[:-1])
         self.classifier = nn.Linear(4096, 2)
 
     def forward(self, x):
-        x = self.vgg_layers(x)
+        x = self.vgg_features(x)
+        x = x.view(-1, self.classifier_input_size)
+        x = self.vgg_tailed_classifier(x)
         x = self.classifier(x)
         return F.log_softmax(x, dim=1)
 

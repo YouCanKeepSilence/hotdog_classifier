@@ -51,14 +51,14 @@ def test_net(model, criterion, test_loader):
     return val_loss, val_acc
 
 
-def train_net():
-    net = models.CNN()
+def train_net(model_class):
+    net = model_class
     writer = SummaryWriter(f'./logs/{type(net).__name__}-{datetime.datetime.now()}')
     if torch.cuda.is_available():
         net.cuda()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters())
-    train_loader, test_loader = dataset.get_train_test_loaders_for_net(batch_size=128)
+    train_loader, test_loader = dataset.get_train_test_loaders_for_net(batch_size=32)
     epochs = 20
     for e in range(epochs):
         net.train()
@@ -146,6 +146,9 @@ def train_vgg_featured_svm():
 
 
 if __name__ == '__main__':
-    # train_net()
-    train_svm()
-    train_vgg_featured_svm()
+    print(f'Start learn net {datetime.datetime.now()}')
+    net = models.CNN()
+    train_net(net)
+    print(f'Finished learn net {datetime.datetime.now()}')
+    # train_svm()
+    # train_vgg_featured_svm()
