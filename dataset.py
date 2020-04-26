@@ -7,7 +7,7 @@ _transform = transforms.Compose([transforms.Resize(255),
                                  transforms.CenterCrop(224),
                                  transforms.ToTensor()])
 
-_default_batch = 56
+_default_batch = 32
 
 
 class ImageFolderWithPaths(datasets.ImageFolder):
@@ -26,18 +26,19 @@ class ImageFolderWithPaths(datasets.ImageFolder):
         return tuple_with_path
 
 
-def _get_loader(path, transform, batch_size=_default_batch, shuffle=True):
-    dataset = datasets.ImageFolder(path, transform=transform)
-    return torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
-
-
-def get_train_loader(path='./data/train'):
-    return _get_loader(path, _transform, batch_size=_default_batch)
-
-
-def get_test_loader(path='./data/test'):
+def get_score_loader_for_net(path='./data/test', batch_size=_default_batch):
     dataset = ImageFolderWithPaths(path, transform=_transform)
-    return torch.utils.data.DataLoader(dataset, batch_size=_default_batch, shuffle=False)
+    return torch.utils.data.DataLoader(dataset, batch_size=batch_size)
+
+
+def get_train_test_loaders_for_net(path='./data/train', test_multiplier=0.2, shuffle=True, batch_size=_default_batch):
+    full_dataset = datasets.ImageFolder(path, transform=_transform)
+    test_size = int(len(full_dataset) * test_multiplier)
+    train_size = len(full_dataset) - test_size
+    train_dataset, test_dataset = torch.utils.data.random_split(full_dataset, [train_size, test_size])
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=shuffle)
+    return train_loader, test_loader
 
 
 def get_train_test_data_for_svm(path='./data/train', test_multiplier=0.2):
@@ -82,10 +83,8 @@ if __name__ == '__main__':
     # images, labels = next(iter(loader))
     # plt.imshow(images[1].permute((1, 2, 0)))
     # print(f'Is hot-dog: {labels[1].item() == 1}')
-    data = get_train_data_for_svm()
     # plt.imshow(data[0][0][0], cmap='hot')
     # plt.imshow(data[0][0][1], cmap='summer')
     # plt.imshow(data[0][0][2], cmap='winter')
     # print(data[0][0].shape)
-    print('get')
     # plt.show()

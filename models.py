@@ -10,6 +10,7 @@ class CNN(nn.Module):
         self.conv2 = nn.Conv2d(9, 27, kernel_size=3)
         self.conv3 = nn.Conv2d(27, 81, kernel_size=3)
         self.maxPooling = nn.MaxPool2d(kernel_size=3)
+        self.avgPooling = nn.AvgPool2d(kernel_size=3)
         self.pre_linear_size = 81 * 7 * 7
         self.fc1 = nn.Linear(self.pre_linear_size, 1024)
         self.fc2 = nn.Linear(1024, 512)
@@ -21,6 +22,7 @@ class CNN(nn.Module):
         x = self.maxPooling(F.relu(self.conv1(x)))
         x = self.maxPooling(F.relu(self.conv2(x)))
         x = self.maxPooling(F.relu(self.conv3(x)))
+        x = self.dropout05(x)
         x = x.view(-1, self.pre_linear_size)
         x = F.relu(self.fc1(x))
         x = self.dropout05(x)
@@ -34,19 +36,28 @@ class TailedVGG16(nn.Module):
     def __init__(self):
         super(TailedVGG16, self).__init__()
         self.vgg16 = models.vgg16(pretrained=True)
-        self.features = nn.Sequential(*list(self.vgg16.features)[:-1])
-        self.classifier = nn.Linear(100352, 2)
+        self.vgg_layers = nn.Sequential(*list(self.vgg16.features), *list(self.vgg16.classifier)[:-1])
+        self.classifier = nn.Linear(4096, 2)
 
     def forward(self, x):
-        x = self.features(x)
-        x = x.view(-1, 100352)
+        x = self.vgg_layers(x)
         x = self.classifier(x)
         return F.log_softmax(x, dim=1)
 
 
-class SVM:
+class TailedVGG16Features(nn.Module):
     def __init__(self):
-        pass
+        super(TailedVGG16Features, self).__init__()
+        self.model = models.vgg16(pretrained=True)
+        self.vgg_features = self.model.features
+        self.classifier_input_size = 512 * 7 * 7
+        self.vgg_tailed_classifier = nn.Sequential(*list(self.model.classifier)[:-1])
+
+    def forward(self, x):
+        x = self.vgg_features(x)
+        x = x.view(-1, self.classifier_input_size)
+        return self.vgg_tailed_classifier(x)
+
 
 
 
