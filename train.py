@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
+from joblib import dump, load
 
 import models
 import dataset
@@ -51,14 +52,14 @@ def test_net(model, criterion, test_loader):
     return val_loss, val_acc
 
 
-def train_net(model_class):
+def train_net(model_class, batch_size=128):
     net = model_class
     writer = SummaryWriter(f'./logs/{type(net).__name__}-{datetime.datetime.now()}')
     if torch.cuda.is_available():
         net.cuda()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters())
-    train_loader, test_loader = dataset.get_train_test_loaders_for_net(batch_size=32)
+    train_loader, test_loader = dataset.get_train_test_loaders_for_net(batch_size=batch_size)
     epochs = 20
     for e in range(epochs):
         net.train()
@@ -92,7 +93,8 @@ def train_net(model_class):
                 writer.add_scalar('Val/Loss', val_loss, e * len(train_loader) + i)
                 writer.add_scalar('Val/Acc', val_acc, e * len(train_loader) + i)
 
-    # write_net_result(net)
+    torch.save(net.state_dict(), f'{type(net).__name__}.model')
+    print(f'{type(net).__name__} saved')
 
 
 def train_svm():
@@ -107,14 +109,15 @@ def train_svm():
     # calculate accuracy
     accuracy = accuracy_score(y_test, y_pred)
     print('Model accuracy is: ', accuracy)
+    dump(svm, 'simple_svm.joblib')
+    print('SVM saved')
 
 
-def train_vgg_featured_svm():
+def train_vgg_featured_svm(batch_size=64):
     vgg = models.TailedVGG16Features()
     svm = SVC(kernel='linear', probability=True, random_state=42)
     if torch.cuda.is_available():
         vgg.cuda()
-    batch_size = 64
     train_loader, test_loader = dataset.get_train_test_loaders_for_net(batch_size=batch_size)
     vgg.eval()
     with torch.no_grad():
@@ -143,12 +146,14 @@ def train_vgg_featured_svm():
     # calculate accuracy
     accuracy = accuracy_score(y_test, y_pred)
     print('Model accuracy is: ', accuracy)
+    dump(svm, 'featured_vgg_svm.joblib')
+    print('featured VGG SVM saved')
 
 
 if __name__ == '__main__':
     print(f'Start learn net {datetime.datetime.now()}')
-    net = models.CNN()
-    train_net(net)
+    c_net = models.CNN()
+    train_net(c_net, batch_size=256)
     print(f'Finished learn net {datetime.datetime.now()}')
-    # train_svm()
-    # train_vgg_featured_svm()
+    train_svm()
+    train_vgg_featured_svm()
