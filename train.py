@@ -14,6 +14,23 @@ import models
 import dataset
 
 
+def write_net_with_ml_score(net, classifier):
+    with open('net_ml_res.txt', 'w') as file:
+        net.eval()
+        if torch.cuda.is_available():
+            net.cuda()
+        loader = dataset.get_score_loader_for_net()
+        with torch.no_grad():
+            # because we have fake label here
+            for x, _, file_name in loader:
+                # forward
+                if torch.cuda.is_available():
+                    x = x.cuda()
+                out = net(x)
+                pred = classifier.predict(out.cpu())
+                file.writelines([f'{file_name[i]} {pred[i]}\n' for i in range(x.size(0))])
+
+
 def write_net_result(model):
     with open('net_vgg_res.txt', 'w') as file:
         model.eval()
@@ -112,30 +129,29 @@ def train_ml_classifier(classifier):
     print(f'{type(classifier).__name__} saved')
 
 
+def pre_process_data_through_net(data_loader, net, feature_count):
+    if torch.cuda.is_available():
+        net.cuda()
+    net.eval()
+    with torch.no_grad():
+        X, Y = np.zeros((len(data_loader.dataset), feature_count)), np.zeros(len(data_loader.dataset))
+        for idx, (x, y) in enumerate(data_loader):
+            if torch.cuda.is_available():
+                x = x.cuda()
+            out = net(x)
+            X[idx * out.size(0): (idx + 1) * out.size(0)][:] = out.cpu()
+            Y[idx * y.size(0): (idx + 1) * y.size(0)][:] = y
+        return X, Y
+
+
 def train_vgg_featured_ml_classifier(classifier, batch_size=64):
     vgg = models.TailedVGG16Features()
-    if torch.cuda.is_available():
-        vgg.cuda()
+
     train_loader, test_loader = dataset.get_train_test_loaders_for_net(batch_size=batch_size)
-    vgg.eval()
-    with torch.no_grad():
-        # preprocessing for classifier
-        x_test, y_test = np.zeros((len(test_loader.dataset), 4096)), np.zeros(len(test_loader.dataset))
-        x_train, y_train = np.zeros((len(train_loader.dataset), 4096)), np.zeros(len(train_loader.dataset))
-        for idx, (x, y) in enumerate(train_loader):
-            if torch.cuda.is_available():
-                x = x.cuda()
-            out = vgg(x)
-            x_train[idx * out.size(0): (idx + 1) * out.size(0)][:] = out.cpu()
-            y_train[idx * y.size(0): (idx + 1) * y.size(0)][:] = y
 
-        for idx, (x, y) in enumerate(test_loader):
-            if torch.cuda.is_available():
-                x = x.cuda()
-            out = vgg(x)
-            x_test[idx * out.size(0): (idx + 1) * out.size(0)][:] = out.cpu()
-            y_test[idx * y.size(0): (idx + 1) * y.size(0)][:] = y
-
+    # pre-processing for classifier
+    x_test, y_test = pre_process_data_through_net(test_loader, vgg, 4096)
+    x_train, y_train = pre_process_data_through_net(train_loader, vgg, 4096)
     # fit model
     print(f'Start learn {type(classifier).__name__} {datetime.datetime.now()}')
     classifier.fit(x_train, y_train)
@@ -146,6 +162,8 @@ def train_vgg_featured_ml_classifier(classifier, batch_size=64):
     print('Model accuracy is: ', accuracy)
     dump(classifier, f'featured_vgg_{type(classifier).__name__}.joblib')
     print(f'Featured VGG {type(classifier).__name__} saved')
+    print('Writing results...')
+    write_net_with_ml_score(vgg, classifier)
 
 
 if __name__ == '__main__':
