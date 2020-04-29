@@ -28,7 +28,7 @@ def write_net_with_ml_score(net, classifier):
                     x = x.cuda()
                 out = net(x)
                 pred = classifier.predict(out.cpu())
-                file.writelines([f'{file_name[i]} {pred[i]}\n' for i in range(x.size(0))])
+                file.writelines([f'{file_name[i].split("/")[-1]} {pred[i].astype(int)}\n' for i in range(x.size(0))])
 
 
 def write_net_result(model):
