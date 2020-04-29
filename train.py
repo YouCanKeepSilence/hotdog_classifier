@@ -6,6 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torch.nn as nn
 import torch.optim as optim
 from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from joblib import dump, load
 
@@ -97,31 +98,28 @@ def train_net(model_class, batch_size=128):
     print(f'{type(net).__name__} saved')
 
 
-def train_svm():
-    # define support vector classifier
-    svm = SVC(kernel='linear', probability=True, random_state=42)
+def train_ml_classifier(classifier):
     x_train, x_test, y_train, y_test = dataset.get_train_test_data_for_svm()
     # fit model
-    print(f'Start learn SVM {datetime.datetime.now()}')
-    svm.fit(x_train, y_train)
-    print(f'Finished learn SVM {datetime.datetime.now()}')
-    y_pred = svm.predict(x_test)
+    print(f'Start learn {type(classifier).__name__} {datetime.datetime.now()}')
+    classifier.fit(x_train, y_train)
+    print(f'Finished learn {type(classifier).__name__} {datetime.datetime.now()}')
+    y_pred = classifier.predict(x_test)
     # calculate accuracy
     accuracy = accuracy_score(y_test, y_pred)
     print('Model accuracy is: ', accuracy)
-    dump(svm, 'simple_svm.joblib')
-    print('SVM saved')
+    dump(classifier, f'simple_{type(classifier).__name__}.joblib')
+    print(f'{type(classifier).__name__} saved')
 
 
-def train_vgg_featured_svm(batch_size=64):
+def train_vgg_featured_ml_classifier(classifier, batch_size=64):
     vgg = models.TailedVGG16Features()
-    svm = SVC(kernel='linear', probability=True, random_state=42)
     if torch.cuda.is_available():
         vgg.cuda()
     train_loader, test_loader = dataset.get_train_test_loaders_for_net(batch_size=batch_size)
     vgg.eval()
     with torch.no_grad():
-        # preprocessing for SVM
+        # preprocessing for classifier
         x_test, y_test = np.zeros((len(test_loader.dataset), 4096)), np.zeros(len(test_loader.dataset))
         x_train, y_train = np.zeros((len(train_loader.dataset), 4096)), np.zeros(len(train_loader.dataset))
         for idx, (x, y) in enumerate(train_loader):
@@ -139,21 +137,23 @@ def train_vgg_featured_svm(batch_size=64):
             y_test[idx * y.size(0): (idx + 1) * y.size(0)][:] = y
 
     # fit model
-    print(f'Start learn SVM {datetime.datetime.now()}')
-    svm.fit(x_train, y_train)
-    print(f'Finished learn SVM {datetime.datetime.now()}')
-    y_pred = svm.predict(x_test)
+    print(f'Start learn {type(classifier).__name__} {datetime.datetime.now()}')
+    classifier.fit(x_train, y_train)
+    print(f'Finished learn {type(classifier).__name__} {datetime.datetime.now()}')
+    y_pred = classifier.predict(x_test)
     # calculate accuracy
     accuracy = accuracy_score(y_test, y_pred)
     print('Model accuracy is: ', accuracy)
-    dump(svm, 'featured_vgg_svm.joblib')
-    print('featured VGG SVM saved')
+    dump(classifier, f'featured_vgg_{type(classifier).__name__}.joblib')
+    print(f'Featured VGG {type(classifier).__name__} saved')
 
 
 if __name__ == '__main__':
-    print(f'Start learn net {datetime.datetime.now()}')
-    c_net = models.CNN()
-    train_net(c_net, batch_size=256)
-    print(f'Finished learn net {datetime.datetime.now()}')
-    train_svm()
-    train_vgg_featured_svm()
+    # print(f'Start learn net {datetime.datetime.now()}')
+    # c_net = models.CNN()
+    # train_net(c_net, batch_size=256)
+    # print(f'Finished learn net {datetime.datetime.now()}')
+    ml_class = SVC(kernel='linear', probability=True, random_state=42)
+    # ml_class = RandomForestClassifier(10000, random_state=42)
+    # train_ml_classifier(ml_class)
+    train_vgg_featured_ml_classifier(ml_class)

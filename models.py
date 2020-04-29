@@ -49,6 +49,34 @@ class TailedVGG16(nn.Module):
         return F.log_softmax(x, dim=1)
 
 
+class TailedVGG13Features(nn.Module):
+    def __init__(self):
+        super(TailedVGG13Features, self).__init__()
+        self.model = models.vgg13(pretrained=True)
+        self.vgg_features = self.model.features
+        self.classifier_input_size = 512 * 7 * 7
+        self.vgg_tailed_classifier = nn.Sequential(*list(self.model.classifier)[:-1])
+
+    def forward(self, x):
+        x = self.vgg_features(x)
+        x = x.view(-1, self.classifier_input_size)
+        return self.vgg_tailed_classifier(x)
+
+
+class TailedVGG19Features(nn.Module):
+    def __init__(self):
+        super(TailedVGG19Features, self).__init__()
+        self.model = models.vgg19(pretrained=True)
+        self.vgg_features = self.model.features
+        self.classifier_input_size = 512 * 7 * 7
+        self.vgg_tailed_classifier = nn.Sequential(*list(self.model.classifier)[:-1])
+
+    def forward(self, x):
+        x = self.vgg_features(x)
+        x = x.view(-1, self.classifier_input_size)
+        return self.vgg_tailed_classifier(x)
+
+
 class TailedVGG16Features(nn.Module):
     def __init__(self):
         super(TailedVGG16Features, self).__init__()
