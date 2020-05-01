@@ -15,7 +15,7 @@ import dataset
 
 
 def write_net_with_ml_score(net, classifier):
-    with open('net_ml_res.txt', 'w') as file:
+    with open('test_labels.txt', 'w') as file:
         net.eval()
         if torch.cuda.is_available():
             net.cuda()
@@ -167,11 +167,11 @@ def train_vgg_featured_ml_classifier(classifier, batch_size=64):
 
 
 if __name__ == '__main__':
-    # print(f'Start learn net {datetime.datetime.now()}')
-    # c_net = models.CNN()
-    # train_net(c_net, batch_size=256)
-    # print(f'Finished learn net {datetime.datetime.now()}')
-    ml_class = SVC(kernel='linear', probability=True, random_state=42)
+    print(f'Start learn net {datetime.datetime.now()}')
+    c_net = models.TailedVGG16()
+    train_net(c_net, batch_size=32)
+    print(f'Finished learn net {datetime.datetime.now()}')
+    # ml_class = SVC(kernel='linear', probability=True, random_state=42)
     # ml_class = RandomForestClassifier(10000, random_state=42)
     # train_ml_classifier(ml_class)
-    train_vgg_featured_ml_classifier(ml_class)
+    # train_vgg_featured_ml_classifier(ml_class)
